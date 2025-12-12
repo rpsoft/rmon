@@ -1,0 +1,20 @@
+Package: rmon
+Type: Package
+Title: Shiny App File Monitor and Hot Reloader
+Version: 0.1.0
+Author: Your Name
+Maintainer: Your Name <your.email@example.com>
+Description: A file monitoring tool for R Shiny applications that automatically
+    restarts the app when R source files are modified. Provides an alternative
+    launcher for Shiny apps with hot-reload functionality.
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Imports:
+    fs,
+    processx
+Suggests:
+    shiny,
+    roxygen2 (>= 7.0.0)
+RoxygenNote: 7.3.2
+

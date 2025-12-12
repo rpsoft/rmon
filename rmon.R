@@ -1,29 +1,38 @@
-# rmon.R
 library(fs)
 library(processx)
 
 args <- commandArgs(trailingOnly = TRUE)
-
-if (length(args) < 2) {
-  cat("Usage: Rscript rmon.R <folder_to_watch> <command_to_run>\n")
+if (length(args) < 1) {
+  cat("Usage: Rscript rmon_shiny.R <app_folder> [port]\n")
   quit(status = 1)
 }
 
-watch_dir <- args[1]
-command <- args[-1]
+# Normalize the folder path properly
+app_dir <- path_abs(args[1])
+app_dir <- path_norm(app_dir)
+app_dir <- path_real(app_dir)
+app_dir <- sub("/+$", "", app_dir)
+
+if (!dir_exists(app_dir)) {
+  cat("❌ Error: directory does not exist:", app_dir, "\n")
+  quit(status = 1)
+}
+
+port <- if (length(args) >= 2) as.integer(args[2]) else 1234
 poll_delay <- 1
 
-cat("📡 Watching", watch_dir, "for changes...\n")
-cat("▶️  Command to run on change:", paste(command, collapse = " "), "\n")
+cat("📡 Watching Shiny app at:", app_dir, "\n")
+cat("▶️ Running on port:", port, "\n\n")
 
 get_mod_time <- function() {
-  files <- dir_info(watch_dir, recurse = TRUE, type = "file", regexp = "\\.R$")
+  files <- dir_info(app_dir, recurse = TRUE, type = "file", regexp = "\\.[rR]$")
   if (nrow(files) == 0) return(Sys.time())
   max(files$modification_time, na.rm = TRUE)
 }
 
 last_mod_time <- get_mod_time()
 proc <- NULL
+first_launch <- TRUE
 
 repeat {
   Sys.sleep(poll_delay)
@@ -36,8 +45,16 @@ repeat {
       proc$kill()
     }
     
-    cat("\n🔁 Change detected in", watch_dir, "\n")
-    proc <- process$new(command[1], command[-1], stdout = "|", stderr = "|")
+    cat("🔁 Change detected — restarting Shiny app…\n")
+    
+    browser_flag <- if (first_launch) "TRUE" else "FALSE"
+    cmd <- sprintf(
+      "shiny::runApp('%s', port=%d, launch.browser=%s)",
+      app_dir, port, browser_flag
+    )
+    
+    proc <- process$new("Rscript", c("-e", cmd), stdout = "|", stderr = "|")
+    first_launch <- FALSE
     
     repeat {
       is_alive <- tryCatch(proc$is_alive(), error = function(e) FALSE)

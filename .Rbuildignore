@@ -1,0 +1,7 @@
+^renv\.lock$
+^renv$
+^test$
+^\.Rproj\.user$
+^rmon\.R$
+
+^.*\.Rproj$
